@@ -1,0 +1,7 @@
+visual_flow:
+  ros__parameters:
+    rgb_topic:            /camera/color/image_raw
+    depth_topic:          /camera/depth/image_raw
+    camera_info_topic:    /camera/color/camera_info
+    vertical_delta_topic: /camera_vertical_delta
+    skip_frames:          5
