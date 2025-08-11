@@ -12,9 +12,7 @@ from collections import deque
 
 class OpticalFlowOdometer:
     def __init__(self, intrinsic_matrix, dist_coeffs, scale=0.5, image_size=(1920,1080)):
-        """
-        Uses Shi-Tomasi + pyramidal LK optical flow with depth for vertical (Y) translation estimation.
-        """
+        # Uses Shi-Tomasi + pyramidal LK optical flow with depth for vertical (Y) translation estimation.
         self.scale      = scale
         self.K          = intrinsic_matrix.copy()
         self.distCoeffs = dist_coeffs
@@ -39,12 +37,14 @@ class OpticalFlowOdometer:
             minDistance=7,
             blockSize=7
         )
+
         # Parameters for Lucas-Kanade optical flow
         self.lk_params = dict(
             winSize=(21, 21),
             maxLevel=3,
             criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 0.01)
         )
+
         self.prev_gray  = None
         self.prev_depth = None
         self.prev_pts   = None
@@ -66,7 +66,7 @@ class OpticalFlowOdometer:
         rgb_u   = self.undistort(rgb)
         depth_u = self.undistort(depth)
 
-        # Gray + downsample
+        # Gray and downsample
         gray_full = cv2.cvtColor(rgb_u, cv2.COLOR_BGR2GRAY)
         h, w      = gray_full.shape[:2]
         gray_s    = cv2.resize(gray_full, (int(w*self.scale), int(h*self.scale)))
@@ -132,6 +132,10 @@ class FlowZTracker(Node):
         self.skip_frames = skip_frames
         self._frame_count = 0
 
+        # note
+        # camera params set by info from camera_info topic in bag.
+        # Clearly this changes, I was having errors reading from topic, just set it manually
+        # This can be improved on if genuinely used/managed
         K = np.array([
             [902.9823, 0.0,      956.5549],
             [0.0,      902.7744, 547.6816],
@@ -183,6 +187,9 @@ class FlowZTracker(Node):
         #z_world = self.z_offset + self.ground
         z_world = self.z_offset
         self.z_pub.publish(Float32(data=float(z_world)))
+        # at this point realized that I can just track an offset var (at a timestep) and a total var (over all time domain)
+        # then publish both at the same time...
+        # but I already added this support in tree_template, it's fine for now :)
         self.get_logger().info(f"ΔZ: {dz:+.3f} m | Total Z: {self.z_offset:.3f} m")
 
 
