@@ -126,10 +126,23 @@ class OpticalFlowOdometer:
 class FlowZTracker(Node):
     def __init__(self, skip_frames=5):
         super().__init__('flow_z_tracker')
+
+        self.declare_parameter('rgb_topic',            '/camera/color/image_raw')
+        self.declare_parameter('depth_topic',          '/camera/depth/image_raw')
+        self.declare_parameter('camera_info_topic',    '/camera/color/camera_info')
+        self.declare_parameter('vertical_delta_topic', '/camera_vertical_delta')
+        self.declare_parameter('skip_frames',          5)
+
+        self.rgb_topic   = self.get_parameter('rgb_topic').value
+        self.depth_topic = self.get_parameter('depth_topic').value
+        self.info_topic  = self.get_parameter('camera_info_topic').value
+        self.delta_topic = self.get_parameter('vertical_delta_topic').value
+        self.skip_frames = int(self.get_parameter('skip_frames').value)
+
+
         self.bridge      = CvBridge()
         self.z_offset    = 0.0
         #self.ground      = 0.0
-        self.skip_frames = skip_frames
         self._frame_count = 0
 
         # note
@@ -149,12 +162,12 @@ class FlowZTracker(Node):
         self.odometer = OpticalFlowOdometer(K, dist_coeffs, scale=0.5, image_size=(1920,1080))
 
         self.caminfo_sub = self.create_subscription(
-            CameraInfo, '/camera/color/camera_info', self.on_camera_info, 10
+            CameraInfo, self.info_topic, self.on_camera_info, 10
         )
-        self.z_pub = self.create_publisher(Float32, '/camera_vertical_delta', 10)
+        self.z_pub = self.create_publisher(Float32, self.delta_topic, 10)
 
-        rgb_sub   = message_filters.Subscriber(self, Image, '/camera/color/image_raw')
-        depth_sub = message_filters.Subscriber(self, Image, '/camera/depth/image_raw')
+        rgb_sub   = message_filters.Subscriber(self, Image, self.rgb_topic)
+        depth_sub = message_filters.Subscriber(self, Image, self.depth_topic)
         ts = message_filters.ApproximateTimeSynchronizer(
             [rgb_sub, depth_sub], queue_size=10, slop=0.05
         )
